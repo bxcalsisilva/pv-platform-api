@@ -2,6 +2,7 @@
 data/
 processed/
 config.json
+nohup.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
