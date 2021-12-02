@@ -48,7 +48,10 @@ def get_sys_info(sys_id: int):
     stmt = stmt.where(sys_id == sys.c.system_id)
     rslt = connection.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=config["sys_info_cols"])
-    dct = df.to_dict("records")
+    df = df.transpose().reset_index()
+    dct = dict_format(df)
+
+    # dict, list, series, split, records, index
 
     return dct
 
