@@ -25,6 +25,11 @@ def read_locs():
     return crud.get_locs()
 
 
+@app.get("/sys")
+def read_sys(loc_id: int):
+    return crud.get_sys(loc_id)
+
+
 @app.get("/irrs/{loc_id}")
 def read_irrs(loc_id: int, start_dt: date, end_dt: date = None):
     if end_dt:

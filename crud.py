@@ -15,6 +15,29 @@ def get_locs():
     return dct
 
 
+def get_sys(loc_id: int):
+    sys = metadata.tables["systems"]
+    stmt = select(
+        sys.c.location_id,
+        sys.c.system_id,
+        sys.c.nominal_power,
+        sys.c.area,
+        sys.c.technology,
+        sys.c.row,
+        sys.c.parallel,
+        sys.c.commisioned,
+        sys.c.inclination,
+        sys.c.orientation,
+        sys.c.azimuth,
+    )
+    stmt = stmt.where(loc_id == sys.c.location_id)
+    rslt = connection.execute(stmt)
+    df = pd.DataFrame(rslt.all(), columns=rslt.keys())
+    dct = df.to_dict("records")
+
+    return dct
+
+
 def get_perfs(system_id: int, col: str, start_dt: date = None, end_dt: date = None):
     prfms = metadata.tables["performances"]
     stmt = select(prfms.c.date, prfms.c[col]).where(prfms.c.system_id == system_id)
