@@ -51,8 +51,6 @@ def get_sys_info(sys_id: int):
     df = df.transpose().reset_index()
     dct = dict_format(df)
 
-    # dict, list, series, split, records, index
-
     return dct
 
 
