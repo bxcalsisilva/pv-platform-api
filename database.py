@@ -1,8 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData
 from sqlalchemy.orm import sessionmaker
+import json
 
-SQLALCHEMY_DATABASE_URL = "mariadb+mariadbconnector://root:password@localhost:3306/test"
+config = json.load(open("config.json", "r"))
+
+SQLALCHEMY_DATABASE_URL = f"mariadb+mariadbconnector://{config['usr']}:{config['pwd']}@{config['host']}:{config['port']}/{config['db']}"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, future=True)
 

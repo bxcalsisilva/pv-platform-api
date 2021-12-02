@@ -6,6 +6,15 @@ from datetime import date, timedelta
 from database import metadata, connection
 
 
+def get_locs():
+    locs = metadata.tables["locations"]
+    stmt = select(locs.c.location_id, locs.c.label, locs.c.city)
+    rslt = connection.execute(stmt)
+    df = pd.DataFrame(rslt.all(), columns=rslt.keys())
+    dct = df.to_dict("records")
+    return dct
+
+
 def get_perfs(system_id: int, col: str, start_dt: date = None, end_dt: date = None):
     prfms = metadata.tables["performances"]
     stmt = select(prfms.c.date, prfms.c[col]).where(prfms.c.system_id == system_id)
@@ -76,5 +85,6 @@ def dict_format(df: DataFrame):
 
 
 if __name__ == "__main__":
-    rslt = get_temps(1, date(2021, 5, 31), date(2021, 6, 1))
+    # rslt = get_temps(1, date(2021, 5, 31), date(2021, 6, 1))
+    rslt = get_locs()
     print(rslt)

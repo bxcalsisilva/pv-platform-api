@@ -20,6 +20,11 @@ def main():
     return "PV Platform API"
 
 
+@app.get("/locs")
+def read_locs():
+    return crud.get_locs()
+
+
 @app.get("/irrs/{loc_id}")
 def read_irrs(loc_id: int, start_dt: date, end_dt: date = None):
     if end_dt:
