@@ -2,8 +2,11 @@ from sqlalchemy import select
 import pandas as pd
 from pandas import DataFrame
 from datetime import date, timedelta
+import json
 
 from database import metadata, connection
+
+config = json.load(open("config.json", "r"))
 
 
 def get_locs():
@@ -20,9 +23,21 @@ def get_sys(loc_id: int):
     stmt = select(
         sys.c.location_id,
         sys.c.system_id,
+        sys.c.technology,
+    )
+    stmt = stmt.where(loc_id == sys.c.location_id)
+    rslt = connection.execute(stmt)
+    df = pd.DataFrame(rslt.all(), columns=rslt.keys())
+    dct = df.to_dict("records")
+
+    return dct
+
+
+def get_sys_info(sys_id: int):
+    sys = metadata.tables["systems"]
+    stmt = select(
         sys.c.nominal_power,
         sys.c.area,
-        sys.c.technology,
         sys.c.row,
         sys.c.parallel,
         sys.c.commisioned,
@@ -30,9 +45,9 @@ def get_sys(loc_id: int):
         sys.c.orientation,
         sys.c.azimuth,
     )
-    stmt = stmt.where(loc_id == sys.c.location_id)
+    stmt = stmt.where(sys_id == sys.c.system_id)
     rslt = connection.execute(stmt)
-    df = pd.DataFrame(rslt.all(), columns=rslt.keys())
+    df = pd.DataFrame(rslt.all(), columns=config["sys_info_cols"])
     dct = df.to_dict("records")
 
     return dct
@@ -109,5 +124,5 @@ def dict_format(df: DataFrame):
 
 if __name__ == "__main__":
     # rslt = get_temps(1, date(2021, 5, 31), date(2021, 6, 1))
-    rslt = get_locs()
+    rslt = get_sys_info(1)
     print(rslt)
