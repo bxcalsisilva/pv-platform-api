@@ -52,7 +52,7 @@ def read_temps(sys_id: int, start_dt: date, end_dt: date = None):
         return crud.get_temps(sys_id, start_dt, end_dt)
     else:
         end_dt = start_dt + timedelta(days=1)
-        return crud.get_temps(sys_id, start_dt)
+        return crud.get_temps(sys_id, start_dt, end_dt)
 
 
 @app.get("/invs/{sys_id}/{col}")
