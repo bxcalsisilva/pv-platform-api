@@ -1,0 +1,17 @@
+{
+    "usr": "root",
+    "pwd": "password",
+    "host": "localhost",
+    "port": 3306,
+    "db": "pv_systems",
+    "sys_info_cols": [
+        "Nominal Power (kW)",
+        "Area (m2)",
+        "Modules in String",
+        "Modules in parallel",
+        "Commisioned",
+        "Inclination (°)",
+        "Orientation",
+        "Azimuth (°)"
+    ]
+}
