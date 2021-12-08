@@ -4,7 +4,59 @@ from datetime import date, timedelta
 
 import crud
 
-app = FastAPI()
+description = """
+## Input values description
+
+Dates must be in the format YYYY-MM-DD
+
+### locs - Locations
+There is 6 available locations
+
+### sys - Systems
+There are 3 systems per location
+sys_id between 1 - 18
+
+e.g. loc_id = 2 -> sys_id = [4, 5, 6]
+
+### irrs - Irradiances
+
+input: loc_id between 1 - 6
+
+### temps - Module temperatures
+
+### invs - Inverter measurements
+
+col: Measured values:
+- voltage_dc
+- current_dc
+- power_apparent
+- power_dc
+- power_dc_t25
+- power_ac
+- power_ac_t25
+
+### perfs - Performances
+
+col: Performance metrics:
+- radiation
+- yield_reference
+- yield_absolute
+- yield_final
+- yield_absolute_t25
+- yield_final_t25
+- performance_ratio
+- performance_ratio_t25
+- efficiency_array
+- efficiency_system
+- efficiency_inverter
+- energy_dc
+- energy_ac
+- energy_dc_t25
+- energy_ac_t25
+
+"""
+
+app = FastAPI(description=description)
 
 app.add_middleware(
     CORSMiddleware,
