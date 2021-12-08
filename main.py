@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import date, timedelta
+import json
 
 import crud
 
@@ -126,4 +127,27 @@ def read_perfs(sys_id: int, col: str, start_dt: date = None, end_dt: date = None
         end_dt = end_dt + timedelta(days=1)
         return crud.get_perfs(sys_id, col, start_dt, end_dt)
     else:
-        return crud.get_perfs(sys_id, col)
+        return crud.get_perfs(sys_id, col, start_dt, end_dt)
+
+
+@app.get("/info/{loc_id}/{sys_id}/{col}")
+def read_info(
+    loc_id: int, sys_id: int, col: str, start_dt: date = None, end_dt: date = None
+):
+    config = json.load(open("config.json", "r"))
+
+    if start_dt and not end_dt:
+        end_dt = start_dt + timedelta(days=1)
+    elif start_dt and end_dt:
+        end_dt = end_dt + timedelta(days=1)
+    else:
+        start_dt, end_dt = None, None
+
+    if col == "irr":
+        return crud.get_irrs(loc_id, start_dt, end_dt)
+    if col == "t_mod":
+        return crud.get_temps(sys_id, start_dt, end_dt)
+    if col in config["inv_cols"]:
+        return crud.get_invs(sys_id, col, start_dt, end_dt)
+    if col in config["perf_cols"]:
+        return crud.get_perfs(sys_id, col, start_dt, end_dt)
