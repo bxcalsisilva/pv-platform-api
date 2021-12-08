@@ -65,7 +65,7 @@ def get_perfs(system_id: int, col: str, start_dt: date = None, end_dt: date = No
         stmt = stmt.where(prfms.c.date < end_dt)
     rslt = connection.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=rslt.keys())
-    dct = dict_format(df)
+    dct = dict_format(df, columns=["date", "value"])
 
     return dct
 
@@ -83,7 +83,7 @@ def get_temps(system_id: int, start_dt: date, end_dt: date):
         stmt = stmt.where(obs.c.datetime < end_dt)
     rslt = connection.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=rslt.keys())
-    dct = dict_format(df)
+    dct = dict_format(df, columns=["date", "value"])
 
     return dct
 
@@ -101,7 +101,7 @@ def get_irrs(loc_id: int, start_dt: date = None, end_dt: date = None):
         stmt = stmt.where(obs.c.datetime < end_dt)
     rslt = connection.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=rslt.keys())
-    dct = dict_format(df)
+    dct = dict_format(df, columns=["date", "value"])
 
     return dct
 
@@ -119,13 +119,13 @@ def get_invs(system_id: int, col: str, start_dt: date, end_dt: date):
         stmt = stmt.where(obs.c.datetime < end_dt)
     rslt = connection.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=rslt.keys())
-    dct = dict_format(df)
+    dct = dict_format(df, columns=["date", "value"])
 
     return dct
 
 
-def dict_format(df: DataFrame):
-    df.columns = ["x", "y"]
+def dict_format(df: DataFrame, columns=["x", "y"]):
+    df.columns = columns
     dct = df.to_dict("records")
     return dct
 
