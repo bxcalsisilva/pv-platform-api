@@ -56,9 +56,11 @@ def get_sys_info(sys_id: int):
 
 def get_perfs(system_id: int, col: str, start_dt: date = None, end_dt: date = None):
     prfms = metadata.tables["performances"]
-    stmt = select(prfms.c.date, prfms.c[col]).where(prfms.c.system_id == system_id)
-    if start_dt is not None:
-        stmt = stmt.where(start_dt <= prfms.c.date)
+    stmt = (
+        select(prfms.c.date, prfms.c[col])
+        .where(prfms.c.system_id == system_id)
+        .where(start_dt <= prfms.c.date)
+    )
     if end_dt is not None:
         stmt = stmt.where(prfms.c.date < end_dt)
     rslt = connection.execute(stmt)
@@ -75,9 +77,8 @@ def get_temps(system_id: int, start_dt: date, end_dt: date):
         select(obs.c.datetime, tmps.c.t_mod)
         .join(obs)
         .where(tmps.c.system_id == system_id)
+        .where(start_dt <= obs.c.datetime)
     )
-    if start_dt is not None:
-        stmt = stmt.where(start_dt <= obs.c.datetime)
     if end_dt is not None:
         stmt = stmt.where(obs.c.datetime < end_dt)
     rslt = connection.execute(stmt)
@@ -94,9 +95,8 @@ def get_irrs(loc_id: int, start_dt: date = None, end_dt: date = None):
         select(obs.c.datetime, irr.c.irradiance)
         .join(obs)
         .where(irr.c.location_id == loc_id)
+        .where(start_dt <= obs.c.datetime)
     )
-    if start_dt is not None:
-        stmt = stmt.where(start_dt <= obs.c.datetime)
     if end_dt is not None:
         stmt = stmt.where(obs.c.datetime < end_dt)
     rslt = connection.execute(stmt)
@@ -110,10 +110,11 @@ def get_invs(system_id: int, col: str, start_dt: date, end_dt: date):
     obs = metadata.tables["observations"]
     inv = metadata.tables["inverters"]
     stmt = (
-        select(obs.c.datetime, inv.c[col]).join(obs).where(inv.c.system_id == system_id)
+        select(obs.c.datetime, inv.c[col])
+        .join(obs)
+        .where(inv.c.system_id == system_id)
+        .where(start_dt <= obs.c.datetime)
     )
-    if start_dt is not None:
-        stmt = stmt.where(start_dt <= obs.c.datetime)
     if end_dt is not None:
         stmt = stmt.where(obs.c.datetime < end_dt)
     rslt = connection.execute(stmt)

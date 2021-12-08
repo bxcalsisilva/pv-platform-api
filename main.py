@@ -131,17 +131,13 @@ def read_perfs(sys_id: int, col: str, start_dt: date = None, end_dt: date = None
 
 
 @app.get("/info/{loc_id}/{sys_id}/{col}")
-def read_info(
-    loc_id: int, sys_id: int, col: str, start_dt: date = None, end_dt: date = None
-):
+def read_info(loc_id: int, sys_id: int, col: str, start_dt: date, end_dt: date = None):
     config = json.load(open("config.json", "r"))
 
-    if start_dt and not end_dt:
+    if not end_dt:
         end_dt = start_dt + timedelta(days=1)
     elif start_dt and end_dt:
         end_dt = end_dt + timedelta(days=1)
-    else:
-        start_dt, end_dt = None, None
 
     if col == "irr":
         return crud.get_irrs(loc_id, start_dt, end_dt)
