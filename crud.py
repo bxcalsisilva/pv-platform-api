@@ -130,7 +130,21 @@ def dict_format(df: DataFrame, columns=["x", "y"]):
     return dct
 
 
+def clean_dates(start_dt: date, end_dt: date = None):
+    # create a end_dt in case is none
+    if end_dt is None:
+        end_dt = start_dt
+    # rearrange dates
+    if end_dt < start_dt:
+        dt_1, dt_2 = end_dt, start_dt
+        start_dt, end_dt = dt_1, dt_2
+
+    end_dt += timedelta(days=1)
+
+    return start_dt, end_dt
+
+
 if __name__ == "__main__":
     # rslt = get_temps(1, date(2021, 5, 31), date(2021, 6, 1))
-    rslt = get_sys_info(1)
+    rslt = clean_dates(date(2022, 4, 3))
     print(rslt)
