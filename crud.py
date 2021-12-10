@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy import func
 import pandas as pd
 from pandas import DataFrame
 from datetime import date, timedelta
@@ -11,9 +12,9 @@ config = json.load(open("config.json", "r"))
 
 def get_locs():
     locs = metadata.tables["locations"]
-    stmt = select(locs.c.location_id, locs.c.label, locs.c.city)
+    stmt = select(locs.c.location_id, func.concat(locs.c.city, " - ", locs.c.label))
     rslt = connection.execute(stmt)
-    df = pd.DataFrame(rslt.all(), columns=rslt.keys())
+    df = pd.DataFrame(rslt.all(), columns=["location_id", "label"])
     dct = df.to_dict("records")
     return dct
 
@@ -146,5 +147,5 @@ def clean_dates(start_dt: date, end_dt: date = None):
 
 if __name__ == "__main__":
     # rslt = get_temps(1, date(2021, 5, 31), date(2021, 6, 1))
-    rslt = clean_dates(date(2022, 4, 3))
+    rslt = get_locs()
     print(rslt)
