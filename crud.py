@@ -3,6 +3,7 @@ from sqlalchemy import func
 import pandas as pd
 from pandas import DataFrame
 from datetime import date, timedelta
+from dateutil import relativedelta
 import json
 
 from database import metadata, connection
@@ -36,20 +37,47 @@ def get_sys(loc_id: int):
 
 def get_sys_info(sys_id: int):
     sys = metadata.tables["systems"]
+    locs = metadata.tables["locations"]
     stmt = select(
         sys.c.nominal_power,
-        sys.c.area,
         sys.c.row,
         sys.c.parallel,
+        sys.c.area * sys.c.row * sys.c.parallel,
+        sys.c.row * sys.c.parallel,
         sys.c.commisioned,
         sys.c.inclination,
         sys.c.orientation,
         sys.c.azimuth,
-    )
+        locs.c.latitude,
+        locs.c.longitude,
+        locs.c.altitude,
+    ).join(locs)
     stmt = stmt.where(sys_id == sys.c.system_id)
     rslt = connection.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=config["sys_info_cols"])
     df = df.transpose().reset_index()
+
+    dct = dict_format(df)
+
+    return dct
+
+
+def get_tech_info(sys_id: int):
+    sys = metadata.tables["systems"]
+    stmt = select(
+        sys.c.nominal_power,
+        sys.c.area,
+        sys.c.alpha,
+        sys.c.beta,
+        sys.c.gamma,
+        sys.c.noct,
+        sys.c.efficiency,
+    )
+    stmt = stmt.where(sys_id == sys.c.system_id)
+    rslt = connection.execute(stmt)
+    df = pd.DataFrame(rslt.all(), columns=config["tech_info_cols"])
+    df = df.transpose().reset_index()
+
     dct = dict_format(df)
 
     return dct
@@ -131,7 +159,7 @@ def dict_format(df: DataFrame, columns=["x", "y"]):
     return dct
 
 
-def clean_dates(start_dt: date, end_dt: date = None):
+def sort_dates(start_dt: date, end_dt: date = None, agg: str = "daily"):
     # create a end_dt in case is none
     if end_dt is None:
         end_dt = start_dt
@@ -140,12 +168,31 @@ def clean_dates(start_dt: date, end_dt: date = None):
         dt_1, dt_2 = end_dt, start_dt
         start_dt, end_dt = dt_1, dt_2
 
-    end_dt += timedelta(days=1)
+    if agg == "daily":
+        end_dt += timedelta(days=1)
+    elif agg == "weekly":
+        start_dt = start_dt - timedelta(days=start_dt.weekday())
+        end_dt = end_dt - timedelta(days=end_dt.weekday()) + timedelta(days=7)
+    elif agg == "monthly":
+        start_dt = start_dt.replace(day=1)
+        end_dt = end_dt.replace(day=1) + relativedelta.relativedelta(months=1)
+    elif agg == "yearly":
+        start_dt = start_dt.replace(month=1, day=1)
+        end_dt = end_dt.replace(year=end_dt.year + 1, month=1, day=1)
 
     return start_dt, end_dt
 
 
 if __name__ == "__main__":
     # rslt = get_temps(1, date(2021, 5, 31), date(2021, 6, 1))
-    rslt = get_locs()
+    sys_id = 5
+    # rslt = get_sys_info(sys_id)
+    # print(rslt)
+
+    # rslt = get_tech_info(sys_id)
+    # print(rslt)
+
+    start_dt = date(2021, 11, 7)
+    end_dt = date(2021, 12, 11)
+    rslt = sort_dates(start_dt, end_dt, "weekly")
     print(rslt)
