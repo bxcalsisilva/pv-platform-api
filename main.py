@@ -4,6 +4,7 @@ from datetime import date, timedelta
 import json
 
 import crud
+import functions
 
 description = """
 ## Input values description
@@ -123,12 +124,18 @@ def read_info(
     loc_id: int, sys_id: int, col: str, agg: str, start_dt: date, end_dt: date = None
 ):
     config = json.load(open("config.json", "r"))
-    start_dt, end_dt = crud.sort_dates(start_dt, end_dt, agg)
+    start_dt, end_dt = functions.sort_dates(start_dt, end_dt, agg)
     if col == "irr":
-        return crud.get_irrs(loc_id, start_dt, end_dt)
+        rslt = crud.get_irrs(loc_id, start_dt, end_dt)
     if col == "t_mod":
-        return crud.get_temps(sys_id, start_dt, end_dt)
+        rslt = crud.get_temps(sys_id, start_dt, end_dt)
     if col in config["inv_cols"]:
-        return crud.get_invs(sys_id, col, start_dt, end_dt)
+        rslt = crud.get_invs(sys_id, col, start_dt, end_dt)
     if col in config["perf_cols"]:
-        return crud.get_perfs(sys_id, col, start_dt, end_dt)
+        rslt = crud.get_perfs(sys_id, col, start_dt, end_dt)
+
+    freq = config["agg"][agg]
+
+    df = functions.agg_rslt(rslt, freq=freq).fillna("null")
+
+    return df.to_dict("records")

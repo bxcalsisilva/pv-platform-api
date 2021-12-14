@@ -45,5 +45,12 @@
         "efficiency_inverter",
         "energy_dc",
         "energy_ac"
-    ]
+    ],
+    "agg": {
+        "minute": "T",
+        "day": "D",
+        "week": "W",
+        "month": "MS",
+        "year": "YS"
+    }
 }
