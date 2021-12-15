@@ -140,7 +140,7 @@ def read_info(
 @app.get("/comp/{col}/{start_dt}/{end_dt}/")
 def read_comp(col: str, start_dt: date, end_dt: date, techs: List[str] = Query(None)):
 
-    if techs is None or not techs or col not in config["perfs_cols"]:
+    if techs is None or not techs or col not in config["perf_cols"]:
         return {}
 
     start_dt, end_dt = functions.sort_dates(start_dt, end_dt)
