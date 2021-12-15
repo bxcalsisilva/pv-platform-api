@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import date, timedelta
 import json
+from typing import List
+import pandas as pd
 
 import crud
 import functions
@@ -125,17 +127,21 @@ def read_info(
 ):
     config = json.load(open("config.json", "r"))
     start_dt, end_dt = functions.sort_dates(start_dt, end_dt, agg)
-    if col == "irr":
-        rslt = crud.get_irrs(loc_id, start_dt, end_dt)
-    if col == "t_mod":
-        rslt = crud.get_temps(sys_id, start_dt, end_dt)
-    if col in config["inv_cols"]:
-        rslt = crud.get_invs(sys_id, col, start_dt, end_dt)
-    if col in config["perf_cols"]:
-        rslt = crud.get_perfs(sys_id, col, start_dt, end_dt)
+
+    rslt = functions.slct_get(loc_id, sys_id, start_dt, end_dt, col)
 
     freq = config["agg"][agg]
 
     df = functions.agg_rslt(rslt, freq=freq).fillna("null")
 
     return df.to_dict("records")
+
+
+@app.get("/comp/{col}/{start_dt}/{end_dt}")
+def read_comp(col: str, start_dt: date, end_dt: date, techs: List[str] = Query(None)):
+    start_dt, end_dt = functions.sort_dates(start_dt, end_dt)
+
+    rslt = crud.get_perfs_cmp(col, start_dt, end_dt)
+    dct = functions.format_comparison(rslt)
+
+    return dct

@@ -104,6 +104,31 @@ def get_perfs(system_id: int, col: str, start_dt: date, end_dt: date):
     return dct
 
 
+def get_perfs_cmp(col: str, start_dt: date, end_dt: date):
+    prfms = metadata.tables["performances"]
+    locs = metadata.tables["locations"]
+    sys = metadata.tables["systems"]
+    stmt = (
+        select(
+            locs.c.label,
+            sys.c.technology,
+            func.avg(prfms.c[col]).label("avg"),
+            (func.stddev(prfms.c[col]) / func.sqrt(func.count(prfms.c[col]))).label(
+                "se"
+            ),
+        )
+        .join(sys, sys.c.system_id == prfms.c.system_id)
+        .join(locs, locs.c.location_id == sys.c.location_id)
+        .where(start_dt <= prfms.c.date)
+        .where(prfms.c.date < end_dt)
+        .group_by(sys.c.system_id)
+    )
+    rslt = connection.execute(stmt)
+    df = pd.DataFrame(rslt.all(), columns=rslt.keys())
+
+    return df
+
+
 def get_temps(system_id: int, start_dt: date, end_dt: date):
     obs = metadata.tables["observations"]
     tmps = metadata.tables["t_mods"]
