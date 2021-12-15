@@ -85,7 +85,7 @@ def format_comparison(rslt: DataFrame):
     df.reset_index(inplace=True)
     df.rename(new_names, axis=1, inplace=True)
 
-    df.fillna("null")
+    df.fillna("null", inplace=True)
 
     dct = df.to_dict("records")
     dct = {"data": dct}
