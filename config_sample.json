@@ -47,7 +47,7 @@
         "energy_ac"
     ],
     "agg": {
-        "minute": "T",
+        "min": "T",
         "day": "D",
         "week": "W",
         "month": "MS",
