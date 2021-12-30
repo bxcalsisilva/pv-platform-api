@@ -1,36 +1,73 @@
-from datetime import date, timedelta
-from dateutil import relativedelta
+from datetime import date, timedelta, datetime
+from dateutil.relativedelta import relativedelta
 import pandas as pd
 import numpy as np
 import json
+
+from typing import List, Dict, Optional
+from decimal import Decimal
 
 from pandas.core.frame import DataFrame
 
 import crud
 
 
-def sort_dates(start_dt: date, end_dt: date = None, agg: str = "day"):
-    # create a end_dt in case is none
-    if end_dt is None:
-        end_dt = start_dt
-    # rearrange dates
-    if end_dt < start_dt:
-        dt_1, dt_2 = end_dt, start_dt
-        start_dt, end_dt = dt_1, dt_2
+def format_date(date: str) -> date:
+    try:
+        return datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        try:
+            return datetime.strptime(date, "%Y-%m")
+        except ValueError:
+            try:
+                return datetime.strptime(date, "%Y")
+            except:
+                print(f"Date format unknown {date}")
+                raise ValueError
 
-    if agg == "day" or end_dt == "min":
-        end_dt += timedelta(days=1)
-    elif agg == "week":
-        start_dt = start_dt - timedelta(days=start_dt.weekday())
-        end_dt = end_dt - timedelta(days=end_dt.weekday()) + timedelta(days=7)
-    elif agg == "month":
-        start_dt = start_dt.replace(day=1)
-        end_dt = end_dt.replace(day=1) + relativedelta.relativedelta(months=1)
-    elif agg == "year":
-        start_dt = start_dt.replace(month=1, day=1)
-        end_dt = end_dt.replace(year=end_dt.year + 1, month=1, day=1)
 
-    return start_dt, end_dt
+def format_dates(start_date: str, end_date: str) -> List[date]:
+    start_date = format_date(start_date)
+    if end_date:
+        end_date = format_date(end_date)
+
+    return [start_date, end_date]
+
+
+def sort_dates(dates: List[date]) -> List[date]:
+    dates = sorted(dates, key=lambda x: (x is None, x))
+    if dates[1] is None:
+        dates[1] = dates[0]
+
+    return dates
+
+
+def set_dates_range(dates: List[date], mode: str = "date") -> List[date]:
+    dates[0], dates[1] = dates[0], dates[1]
+    if mode == "date":
+        dates[1] += timedelta(days=1)
+    elif mode == "week":
+        dates[0] = dates[0] - timedelta(days=dates[0].weekday())
+        dates[1] = dates[1] - timedelta(days=dates[1].weekday()) + timedelta(days=7)
+    elif mode == "month":
+        dates[0] = dates[0].replace(day=1)
+        dates[1] = dates[1].replace(day=1) + relativedelta(months=1)
+    elif mode == "year":
+        dates[0] = dates[0].replace(month=1, day=1)
+        dates[1] = dates[1].replace(month=1, day=1) + relativedelta(years=1)
+    else:
+        print("mode not supported:", mode)
+        raise ValueError
+
+    return dates
+
+
+def groupby(df: pd.DataFrame, freq: str) -> pd.DataFrame:
+    df.dropna(inplace=True)
+    df["date"] = pd.to_datetime(df["date"])
+
+    df = df.groupby(pd.Grouper(key="date", freq=freq)).sum().reset_index()
+    return df
 
 
 def agg_rslt(rslt: list, key: str = "date", col: str = "value", freq: str = "T"):
@@ -91,3 +128,33 @@ def format_comparison(rslt: DataFrame):
     dct = {"data": dct}
 
     return dct
+
+
+def format_date(date: str) -> date:
+    try:
+        return datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        try:
+            return datetime.strptime(date, "%Y-%m")
+        except ValueError:
+            try:
+                return datetime.strptime(date, "%Y")
+            except:
+                print(f"Date format unknown {date}")
+                raise ValueError
+
+
+def format_dates(start_date: str, end_date: str = None) -> List[date]:
+    start_date = format_date(start_date)
+    if end_date:
+        end_date = format_date(end_date)
+
+    return [start_date, end_date]
+
+
+def aggregate_performance(data: List[Dict[str, Decimal]], mode: str):
+
+    df = pd.DataFrame(data)
+    df["date"] = pd.to_datetime(df["date"])
+
+    pass

@@ -4,8 +4,9 @@ import pandas as pd
 from pandas import DataFrame
 from datetime import date
 import json
+from typing import List
 
-from functions import sort_dates, agg_rslt
+# from functions import sort_dates, agg_rslt
 from database import metadata, connection
 
 config = json.load(open("config.json", "r"))
@@ -40,9 +41,9 @@ def get_sys_info(sys_id: int):
     stmt = (
         select(
             sys.c.nominal_power,
+            sys.c.area * sys.c.row * sys.c.parallel,
             sys.c.row,
             sys.c.parallel,
-            sys.c.area * sys.c.row * sys.c.parallel,
             sys.c.row * sys.c.parallel,
             sys.c.commisioned,
             sys.c.inclination,
@@ -68,7 +69,7 @@ def get_tech_info(sys_id: int):
     sys = metadata.tables["systems"]
     stmt = (
         select(
-            sys.c.nominal_power,
+            sys.c.nominal_power / (sys.c.row * sys.c.parallel),
             sys.c.area,
             sys.c.alpha,
             sys.c.beta,
@@ -88,20 +89,19 @@ def get_tech_info(sys_id: int):
     return dct
 
 
-def get_perfs(system_id: int, col: str, start_dt: date, end_dt: date):
-    prfms = metadata.tables["performances"]
+def get_perfs(system_id: int, col: str, dates: List[date]) -> pd.DataFrame:
+    performances_table = metadata.tables["performances"]
     stmt = (
-        select(prfms.c.date, prfms.c[col])
-        .where(prfms.c.system_id == system_id)
-        .where(start_dt <= prfms.c.date)
-        .where(prfms.c.date < end_dt)
+        select(performances_table.c.date, performances_table.c[col])
+        .where(performances_table.c.system_id == system_id)
+        .where(dates[0] <= performances_table.c.date)
+        .where(performances_table.c.date < dates[1])
         .distinct()
     )
     rslt = connection.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=rslt.keys())
-    dct = dict_format(df, columns=["date", "value"])
 
-    return dct
+    return df
 
 
 def get_perfs_cmp(col: str, start_dt: date, end_dt: date):
@@ -129,15 +129,15 @@ def get_perfs_cmp(col: str, start_dt: date, end_dt: date):
     return df
 
 
-def get_temps(system_id: int, start_dt: date, end_dt: date):
+def get_temps(system_id: int, dates: List[date]):
     obs = metadata.tables["observations"]
     tmps = metadata.tables["t_mods"]
     stmt = (
         select(obs.c.datetime, tmps.c.t_mod)
         .join(obs)
         .where(tmps.c.system_id == system_id)
-        .where(start_dt <= obs.c.datetime)
-        .where(obs.c.datetime < end_dt)
+        .where(dates[0] <= obs.c.datetime)
+        .where(obs.c.datetime < dates[1])
         .distinct()
     )
     rslt = connection.execute(stmt)
@@ -146,15 +146,15 @@ def get_temps(system_id: int, start_dt: date, end_dt: date):
     return dct
 
 
-def get_irrs(loc_id: int, start_dt: date, end_dt: date):
+def get_irrs(loc_id: int, dates: List[date]):
     obs = metadata.tables["observations"]
     irr = metadata.tables["irradiances"]
     stmt = (
         select(obs.c.datetime, irr.c.irradiance)
         .join(obs)
         .where(irr.c.location_id == loc_id)
-        .where(start_dt <= obs.c.datetime)
-        .where(obs.c.datetime < end_dt)
+        .where(dates[0] <= obs.c.datetime)
+        .where(obs.c.datetime < dates[1])
         .distinct()
     )
     rslt = connection.execute(stmt)
@@ -164,15 +164,15 @@ def get_irrs(loc_id: int, start_dt: date, end_dt: date):
     return dct
 
 
-def get_invs(system_id: int, col: str, start_dt: date, end_dt: date):
+def get_invs(system_id: int, col: str, dates: List[date]):
     obs = metadata.tables["observations"]
     inv = metadata.tables["inverters"]
     stmt = (
         select(obs.c.datetime, inv.c[col])
         .join(obs)
         .where(inv.c.system_id == system_id)
-        .where(start_dt <= obs.c.datetime)
-        .where(obs.c.datetime < end_dt)
+        .where(dates[0] <= obs.c.datetime)
+        .where(obs.c.datetime < dates[1])
         .distinct()
     )
     rslt = connection.execute(stmt)
@@ -186,6 +186,18 @@ def dict_format(df: DataFrame, columns=["x", "y"]):
     df.columns = columns
     dct = df.to_dict("records")
     return dct
+
+
+def system_area(system_id: int) -> float:
+    systems_table = metadata.tables["systems"]
+    stmt = select(
+        systems_table.c.area * systems_table.c.row * systems_table.c.parallel
+    ).where(systems_table.c.system_id == system_id)
+
+    rslt = connection.execute(stmt)
+
+    [sys_area] = rslt.one()
+    return sys_area
 
 
 if __name__ == "__main__":
@@ -202,7 +214,10 @@ if __name__ == "__main__":
     agg = "day"
     # rslt = sort_dates(start_dt, end_dt, "weekly")
 
-    rslt = get_perfs(1, "energy_ac", start_dt, end_dt)
-    rslt = get_irrs(1, start_dt, end_dt)
-    df = agg_rslt(rslt, freq="T")
-    print(df)
+    # rslt = get_perfs(1, "energy_ac", start_dt, end_dt)
+    # rslt = get_irrs(1, start_dt, end_dt)
+    # df = agg_rslt(rslt, freq="T")
+    # print(df)
+
+    sys_area = system_area(1)
+    print(sys_area)
