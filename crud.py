@@ -104,7 +104,7 @@ def get_perfs(system_id: int, col: str, dates: List[date]) -> pd.DataFrame:
     return df
 
 
-def get_perfs_cmp(col: str, start_dt: date, end_dt: date):
+def get_perfs_cmp(col: str, dates: List[date]):
     prfms = metadata.tables["performances"]
     locs = metadata.tables["locations"]
     sys = metadata.tables["systems"]
@@ -119,8 +119,8 @@ def get_perfs_cmp(col: str, start_dt: date, end_dt: date):
         )
         .join(sys, sys.c.system_id == prfms.c.system_id)
         .join(locs, locs.c.location_id == sys.c.location_id)
-        .where(start_dt <= prfms.c.date)
-        .where(prfms.c.date < end_dt)
+        .where(dates[0] <= prfms.c.date)
+        .where(prfms.c.date < dates[1])
         .group_by(sys.c.system_id)
     )
     rslt = connection.execute(stmt)

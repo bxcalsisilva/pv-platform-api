@@ -12,8 +12,9 @@ import functions
 from enums import (
     Inverters,
     Aggregations,
+    Technologies,
     Yields,
-    PerformanceRatios,
+    Comparations,
     Efficiencies,
     Energies,
 )
@@ -280,21 +281,24 @@ def get_energy(
     return df.to_dict("records")
 
 
-@app.get("/comp/{col}/{start_dt}/{end_dt}/")
-def read_comp(col: str, start_dt: str, end_dt: str, techs: List[str] = Query(None)):
-
-    if techs is None or not techs or col not in config["perf_cols"]:
+@app.get("/comparison/{col}/{start_dt}/{end_dt}/")
+def get_comparation(
+    col: Comparations,
+    start_dt: str,
+    end_dt: str,
+    techs: List[str] = Query(None),
+):
+    if techs is None or not techs:
         return {}
 
-    start_dt = functions.format_date(start_dt)
-    end_dt = functions.format_date(end_dt)
+    techs = [tech.upper() for tech in techs]
 
-    start_dt, end_dt = functions.sort_dates(start_dt, end_dt)
+    dates = functions.format_dates(start_dt, end_dt)
+    dates = functions.sort_dates(dates)
+    dates = functions.set_dates_range(dates)
 
-    rslt = crud.get_perfs_cmp(col, start_dt, end_dt)
-
+    rslt = crud.get_perfs_cmp(col.name, dates)
     rslt = rslt.loc[rslt["technology"].isin(techs)]
 
     dct = functions.format_comparison(rslt)
-
     return dct
