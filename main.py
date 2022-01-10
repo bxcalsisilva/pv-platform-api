@@ -417,18 +417,3 @@ def get_comparation(
 
     dct = functions.format_comparison(rslt)
     return dct
-
-
-class test_class(BaseModel):
-    id: int
-    name: str
-    number: float
-
-
-@app.post("/test/")
-def test_func(model_class: test_class):
-    return {
-        "id": model_class.id,
-        "name": model_class.name,
-        "number": model_class.number,
-    }
