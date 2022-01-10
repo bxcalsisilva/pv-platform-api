@@ -2,10 +2,10 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import date
 import json
-from typing import List, Optional
+from typing import Dict, List, Optional
 from numpy import e
 import pandas
-from sqlalchemy.sql.functions import func
+from pydantic import BaseModel
 
 import crud
 import functions
@@ -21,7 +21,43 @@ from enums import (
 
 config = json.load(open("config.json", "r"))
 
-app = FastAPI()
+description = """
+PV-Platform API helps retrieve the processing of systems installed in Peru.
+
+## Location & Systems
+
+|Location_id|Location|System_id|System|
+|---|---|---|---|
+|1|PUCP|1|PERC|
+|1|PUCP|2|HIT|
+|1|PUCP|3|CIGS|
+|2|UNI|4|PERC|
+|2|UNI|5|HIT|
+|2|UNI|6|CIGS|
+|3|UNTRM|7|PERC|
+|3|UNTRM|8|HIT|
+|3|UNTRM|9|CIGS|
+|4|UNAJ|10|PERC|
+|4|UNAJ|11|HIT|
+|4|UNAJ|12|CIGS|
+|5|UNJBG|13|PERC|
+|5|UNJBG|14|HIT|
+|5|UNJBG|15|CIGS|
+|6|UNSA|16|PERC|
+|6|UNSA|17|HIT|
+|6|UNSA|18|CIGS|
+
+## Abbreviations:
+
+- **loc_id**:      Location ID
+- **sys_id**:      System ID
+- **start_dt**:    Start date (format: YYYY-mm-dd)
+- **end_dt**:      End date (format: YYYY-mm-dd)
+- **agg**:         Data Aggregation type, e.g. date, month or year
+
+"""
+
+app = FastAPI(title="PV-Platform API", description=description, version="0.10.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,77 +74,59 @@ def main():
 
 
 @app.get("/locations")
-def get_locations() -> dict:
-    """Read the available location in the Database.
+def get_locations() -> List[Dict[str, str]]:
+    """
+    Read the available location in the Database.
 
     Returns:
-        list: dictionaries with location_id and label keys.
-        e.g.
-        [
-            {
-                "location_id": 1,
-                "label": "[City] - [Label]"
-            },
-            ...
-        ]
+    - List[Dict[str, str]]: Dictionaries with location_id and label keys.
     """
     return crud.get_locs()
 
 
 @app.get("/location/{loc_id}/systems")
-def get_systems_by_location(loc_id: int) -> list:
-    """Read system availabel in the selected location
+def get_systems_by_location(loc_id: int) -> List[Dict[str, int]]:
+    """Read system availabel in the selected location.
 
     Args:
-        loc_id (integer): Location id from database, e.g. 1 - 6
+    - loc_id (integer): Location ID.
 
     Returns:
-        list: dictionaries with location_id, system_id and technology of each system.
-        e.g.
-        [
-            {
-                "location_id": 1,
-                "system_id": 1,
-                "technology": "PERC"
-            },
-            ...
-        ]
+    - List[Dict[str, int]]: dictionaries with location_id, system_id and technology of each system.
     """
     return crud.get_sys(loc_id)
 
 
 @app.get("/location/{loc_id}/system/{sys_id}")
-def get_system_information(loc_id: int, sys_id: int) -> list:
-    """Get system information on module and system level
+def get_system_information(loc_id: int, sys_id: int) -> List[List[Dict[str, float]]]:
+    """
+    Get system information on module and system level.
 
     Args:
-        sys_id (integer): System id, i.e. 1 - 18 (3 system per location)
+    - loc_id (int): Location ID
+    - sys_id (int): System ID
 
     Returns:
-        list: System and module lists of information dictionaries.
-        e.g.
-        [
-            [
-                {
-                    "x": "Nominal Power (kW)",
-                    "y": 1.675
-                },
-                ...
-            ],
-            [
-                {
-                    "x": "Nominal Power (kW)",
-                    "y": 0.335
-                },
-                ...
-            ]
-        ]
+    - List[List[Dict[str, float]]]: System and module lists of information dictionaries.
     """
     return crud.get_sys_info(sys_id), crud.get_tech_info(sys_id)
 
 
 @app.get("/location/{loc_id}/system/{sys_id}/irr/start_dt={start_dt}")
-def get_irradiance(loc_id: int, sys_id: int, start_dt: str, end_dt: str = None) -> list:
+def get_irradiance(
+    loc_id: int, sys_id: int, start_dt: str, end_dt: str = None
+) -> List[Dict[str, float]]:
+    """Get Irradiance from database.
+
+    Args:
+    - loc_id (int): Location ID.
+    - sys_id (int): System ID.
+    - start_dt (str): Start date.
+    - end_dt (str, optional): End date. Defaults to None.
+
+    Returns:
+    - List[Dict[str, float]]: Measurements on a minute basis.
+    """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates)
@@ -119,7 +137,18 @@ def get_irradiance(loc_id: int, sys_id: int, start_dt: str, end_dt: str = None) 
 @app.get("/location/{loc_id}/system/{sys_id}/t_mod/start_dt={start_dt}")
 def get_module_temperature(
     loc_id: int, sys_id: int, start_dt: str, end_dt: str = None
-) -> list:
+) -> List[Dict[str, float]]:
+    """Get module temperature of a system.
+
+    Args:
+    - loc_id (int): Location ID.
+    - sys_id (int): System ID.
+    - start_dt (str): Start date.
+    - end_dt (str, optional): End date. Defaults to None.
+
+    Returns:
+    - List[Dict[str, float]]: Module temperature on a minute basis.
+    """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates)
@@ -130,7 +159,19 @@ def get_module_temperature(
 @app.get("/location/{loc_id}/system/{sys_id}/inverter/{col}/start_dt={start_dt}")
 def get_system_output(
     loc_id: int, sys_id: int, col: Inverters, start_dt: str, end_dt: str = None
-) -> list:
+) -> List[Dict[str, float]]:
+    """Get array or system electrical output.
+
+    Args:
+    - loc_id (int): Location ID.
+    - sys_id (int): SystemID.
+    - col (Inverters): Electrical output selection.
+    - start_dt (str): Start date.
+    - end_dt (str, optional): End date. Defaults to None.
+
+    Returns:
+    - List[Dict[str, float]]: Array or System electrical output on a minute basis.
+    """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates)
@@ -146,7 +187,20 @@ def get_yield(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Optional[Aggregations] = Aggregations.D,
-):
+) -> List[Dict[str, float]]:
+    """Get system yield.
+
+    Args:
+    - loc_id (int): Location ID.
+    - sys_id (int): System ID.
+    - col (Yields): Yield selection.
+    - start_dt (str): Start date.
+    - end_dt (Optional[str], optional): End date. Defaults to None.
+    - agg (Optional[Aggregations], optional): Aggregation selection. Defaults to Aggregations.D.
+
+    Returns:
+    - List[Dict[str, float]]: Yield on a daily basis.
+    """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, mode=agg.value)
@@ -168,7 +222,19 @@ def get_performance_ratio(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
-):
+) -> List[Dict[str, float]]:
+    """Get system performance ratio.
+
+    Args:
+    - loc_id (int): Location ID.
+    - sys_id (int): System ID.
+    - start_dt (str): Start date.
+    - end_dt (Optional[str], optional): End date. Defaults to None.
+    - agg (Aggregations, optional): Aggregation selection. Defaults to Aggregations.D.
+
+    Returns:
+    - List[Dict[str, float]]: Performance ratio on a daily basis.
+    """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, mode=agg.value)
@@ -198,7 +264,19 @@ def get_inverter_efficiency(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
-):
+) -> List[Dict[str, float]]:
+    """Get inverter efficiency.
+
+    Args:
+    - loc_id (int): Location ID.
+    - sys_id (int): System ID.
+    - start_dt (str): Start date.
+    - end_dt (Optional[str], optional): End date. Defaults to None.
+    - agg (Aggregations, optional): Aggregation selection. Defaults to Aggregations.D.
+
+    Returns:
+    - List[Dict[str, float]]: Get inverter efficiency on a dialy basis.
+    """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, agg.value)
@@ -230,7 +308,20 @@ def get_efficiency(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
-):
+) -> List[Dict[str, float]]:
+    """Get array of system efficiency.
+
+    Args:
+    - loc_id (int): Location ID.
+    - sys_id (int): System ID.
+    - col (Efficiencies): Array or System.
+    - start_dt (str): Start date.
+    - end_dt (Optional[str], optional): End date. Defaults to None.
+    - agg (Aggregations, optional): Aggregation selection. Defaults to Aggregations.D.
+
+    Returns:
+    - List[Dict[str, float]]: Efficiency on a daily basis.
+    """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, agg.value)
@@ -265,7 +356,20 @@ def get_energy(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
-):
+) -> List[Dict[str, float]]:
+    """Get DC or AC energy.
+
+    Args:
+    - loc_id (int): Location ID.
+    - sys_id (int): System ID.
+    - col (Energies): DC or AC.
+    - start_dt (str): Start date.
+    - end_dt (Optional[str], optional): End date. Defaults to None.
+    - agg (Aggregations, optional): Aggregation selection. Defaults to Aggregations.D.
+
+    Returns:
+    - List[Dict[str, float]]: Energy on a daily basis.
+    """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, agg.value)
@@ -287,7 +391,18 @@ def get_comparation(
     start_dt: str,
     end_dt: str,
     techs: List[str] = Query(None),
-):
+) -> List[Dict[str, float]]:
+    """Get system comparations.
+
+    Args:
+    - col (Comparations): Performance metric selection.
+    - start_dt (str): Start date.
+    - end_dt (str): End date.
+    - techs (List[str], optional): Technology selection. Defaults to Query(None).
+
+    Returns:
+    - List[Dict[str, float]]: System performance metric and confidence level.
+    """
     if techs is None or not techs:
         return {}
 
@@ -302,3 +417,18 @@ def get_comparation(
 
     dct = functions.format_comparison(rslt)
     return dct
+
+
+class test_class(BaseModel):
+    id: int
+    name: str
+    number: float
+
+
+@app.post("/test/")
+def test_func(model_class: test_class):
+    return {
+        "id": model_class.id,
+        "name": model_class.name,
+        "number": model_class.number,
+    }
