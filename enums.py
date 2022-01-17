@@ -22,7 +22,8 @@ class Yields(str, Enum):
 
 
 class PerformanceRatios(str, Enum):
-    performance_ratio = "performance-ratio"
+    yield_absolute = "ac"
+    yield_final = "dc"
 
 
 class Efficiencies(str, Enum):

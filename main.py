@@ -1,30 +1,24 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import date
-import json
 from typing import Dict, List, Optional
-from numpy import e
 import pandas
-from pydantic import BaseModel
 
 import crud
 import functions
 from enums import (
     Inverters,
     Aggregations,
-    Technologies,
     Yields,
     Comparations,
     Efficiencies,
     Energies,
+    PerformanceRatios,
 )
 
-config = json.load(open("config.json", "r"))
-
 description = """
-PV-Platform API helps retrieve the processing of systems installed in Peru.
+PV-Platform API helps retrieve the monitoring and performance metrics of systems installed in Peru.
 
-## Location & Systems
+## Locations & Systems
 
 |Location_id|Location|System_id|System|
 |---|---|---|---|
@@ -57,7 +51,7 @@ PV-Platform API helps retrieve the processing of systems installed in Peru.
 
 """
 
-app = FastAPI(title="PV-Platform API", description=description, version="0.10.0")
+app = FastAPI(title="PV-Platform API", description=description, version="0.11.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -73,10 +67,10 @@ def main():
     return "PV Platform API"
 
 
-@app.get("/locations")
+@app.get("/locations", tags=["Description"])
 def get_locations() -> List[Dict[str, str]]:
     """
-    Read the available location in the Database.
+    Read the available locations in the Database.
 
     Returns:
     - List[Dict[str, str]]: Dictionaries with location_id and label keys.
@@ -84,9 +78,9 @@ def get_locations() -> List[Dict[str, str]]:
     return crud.get_locs()
 
 
-@app.get("/location/{loc_id}/systems")
+@app.get("/location/{loc_id}/systems", tags=["Description"])
 def get_systems_by_location(loc_id: int) -> List[Dict[str, int]]:
-    """Read system availabel in the selected location.
+    """Read systems available in the requested location.
 
     Args:
     - loc_id (integer): Location ID.
@@ -97,7 +91,7 @@ def get_systems_by_location(loc_id: int) -> List[Dict[str, int]]:
     return crud.get_sys(loc_id)
 
 
-@app.get("/location/{loc_id}/system/{sys_id}")
+@app.get("/location/{loc_id}/system/{sys_id}", tags=["Description"])
 def get_system_information(loc_id: int, sys_id: int) -> List[List[Dict[str, float]]]:
     """
     Get system information on module and system level.
@@ -112,20 +106,19 @@ def get_system_information(loc_id: int, sys_id: int) -> List[List[Dict[str, floa
     return crud.get_sys_info(sys_id), crud.get_tech_info(sys_id)
 
 
-@app.get("/location/{loc_id}/system/{sys_id}/irr/start_dt={start_dt}")
+@app.get("/ambient/irr/{loc_id}/{start_dt}", tags=["Ambient"])
 def get_irradiance(
-    loc_id: int, sys_id: int, start_dt: str, end_dt: str = None
-) -> List[Dict[str, float]]:
+    loc_id: int, start_dt: str, end_dt: str = None
+) -> Dict[str, List[float]]:
     """Get Irradiance from database.
 
     Args:
     - loc_id (int): Location ID.
-    - sys_id (int): System ID.
     - start_dt (str): Start date.
     - end_dt (str, optional): End date. Defaults to None.
 
     Returns:
-    - List[Dict[str, float]]: Measurements on a minute basis.
+    - Dict[str, List[float]]: Measurements on a minute basis.
     """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
@@ -134,20 +127,19 @@ def get_irradiance(
     return crud.get_irrs(loc_id, dates)
 
 
-@app.get("/location/{loc_id}/system/{sys_id}/t_mod/start_dt={start_dt}")
+@app.get("/ambient/t_mod/{sys_id}/{start_dt}", tags=["Ambient"])
 def get_module_temperature(
-    loc_id: int, sys_id: int, start_dt: str, end_dt: str = None
-) -> List[Dict[str, float]]:
+    sys_id: int, start_dt: str, end_dt: str = None
+) -> Dict[str, List[float]]:
     """Get module temperature of a system.
 
     Args:
-    - loc_id (int): Location ID.
     - sys_id (int): System ID.
     - start_dt (str): Start date.
     - end_dt (str, optional): End date. Defaults to None.
 
     Returns:
-    - List[Dict[str, float]]: Module temperature on a minute basis.
+    - Dict[str, List[float]]: Module temperature on a minute basis.
     """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
@@ -156,10 +148,10 @@ def get_module_temperature(
     return crud.get_temps(sys_id, dates)
 
 
-@app.get("/location/{loc_id}/system/{sys_id}/inverter/{col}/start_dt={start_dt}")
+@app.get("/inverter/{col}/{sys_id}/{start_dt}", tags=["Inverter"])
 def get_system_output(
-    loc_id: int, sys_id: int, col: Inverters, start_dt: str, end_dt: str = None
-) -> List[Dict[str, float]]:
+    sys_id: int, col: Inverters, start_dt: str, end_dt: str = None
+) -> Dict[str, List[float]]:
     """Get array or system electrical output.
 
     Args:
@@ -170,7 +162,7 @@ def get_system_output(
     - end_dt (str, optional): End date. Defaults to None.
 
     Returns:
-    - List[Dict[str, float]]: Array or System electrical output on a minute basis.
+    - Dict[str, List[float]]: Array or System electrical output on a minute basis.
     """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
@@ -179,19 +171,17 @@ def get_system_output(
     return crud.get_invs(sys_id, col.name, dates)
 
 
-@app.get("/location/{loc_id}/system/{sys_id}/yield/{col}/start_dt={start_dt}")
+@app.get("/yield/{col}/{sys_id}/{start_dt}", tags=["Yield"])
 def get_yield(
-    loc_id: int,
     sys_id: int,
     col: Yields,
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Optional[Aggregations] = Aggregations.D,
-) -> List[Dict[str, float]]:
+) -> Dict[str, List[float]]:
     """Get system yield.
 
     Args:
-    - loc_id (int): Location ID.
     - sys_id (int): System ID.
     - col (Yields): Yield selection.
     - start_dt (str): Start date.
@@ -199,7 +189,7 @@ def get_yield(
     - agg (Optional[Aggregations], optional): Aggregation selection. Defaults to Aggregations.D.
 
     Returns:
-    - List[Dict[str, float]]: Yield on a daily basis.
+    - Dict[str, List[float]]: Yield on a daily basis.
     """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
@@ -208,74 +198,76 @@ def get_yield(
     yields = crud.get_perfs(sys_id, col.name, dates)
     try:
         df = functions.groupby(yields, freq=agg.name)
-        df.columns = ["date", "value"]
+        df.columns = ["x", "y"]
     except ValueError:
         return {}
 
     return df.to_dict("records")
 
 
-@app.get("/location/{loc_id}/system/{sys_id}/performance-ratio/start_dt={start_dt}")
+@app.get("/performance-ratio/{col}/{sys_id}/{start_dt}", tags=["Performance ratio"])
 def get_performance_ratio(
-    loc_id: int,
+    col: PerformanceRatios,
     sys_id: int,
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
-) -> List[Dict[str, float]]:
+) -> Dict[str, List[float]]:
     """Get system performance ratio.
 
     Args:
-    - loc_id (int): Location ID.
+    - col (PerformanceRatios): AC or DC definition.
     - sys_id (int): System ID.
     - start_dt (str): Start date.
     - end_dt (Optional[str], optional): End date. Defaults to None.
     - agg (Aggregations, optional): Aggregation selection. Defaults to Aggregations.D.
 
     Returns:
-    - List[Dict[str, float]]: Performance ratio on a daily basis.
+    - Dict[str, List[float]]: Performance ratio on a daily basis.
     """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, mode=agg.value)
 
-    yield_final = crud.get_perfs(sys_id, "yield_final", dates)
+    yield_name = col.name
+
+    yield_col = crud.get_perfs(sys_id, yield_name, dates)
     yield_reference = crud.get_perfs(sys_id, "yield_reference", dates)
 
-    yields = pandas.merge(yield_final, yield_reference, on="date")
-    yields.columns = ["date", "final", "reference"]
-    yields[["final", "reference"]] = yields[["final", "reference"]].astype("float")
+    yields = pandas.merge(yield_col, yield_reference, on="date")
+    yields.columns = ["date", yield_name, "reference"]
+    yields[[yield_name, "reference"]] = yields[[yield_name, "reference"]].astype(
+        "float"
+    )
 
     try:
         df = functions.groupby(yields, freq=agg.name)
-        df["performance_ratio"] = df["final"] / df["reference"]
-        df.rename({"performance_ratio": "value"}, axis=1, inplace=True)
+        df["performance_ratio"] = df[yield_name] / df["reference"]
+        df.rename({"performance_ratio": "y", "date": "x"}, axis=1, inplace=True)
         df.dropna(inplace=True)
     except ValueError:
         return {}
 
-    return df[["date", "value"]].to_dict("records")
+    return df[["x", "y"]].to_dict("records")
 
 
-@app.get("/location/{loc_id}/system/{sys_id}/efficiency/inverter/start_dt={start_dt}")
+@app.get("/efficiency/inverter/{sys_id}/{start_dt}", tags=["Efficiency"])
 def get_inverter_efficiency(
-    loc_id: int,
     sys_id: int,
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
-) -> List[Dict[str, float]]:
+) -> Dict[str, List[float]]:
     """Get inverter efficiency.
 
     Args:
-    - loc_id (int): Location ID.
     - sys_id (int): System ID.
     - start_dt (str): Start date.
     - end_dt (Optional[str], optional): End date. Defaults to None.
     - agg (Aggregations, optional): Aggregation selection. Defaults to Aggregations.D.
 
     Returns:
-    - List[Dict[str, float]]: Get inverter efficiency on a dialy basis.
+    - Dict[str, List[float]]: Get inverter efficiency on a dialy basis.
     """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
@@ -292,43 +284,39 @@ def get_inverter_efficiency(
         df = functions.groupby(energy, freq=agg.name)
 
         df["efficiency_inverter"] = df["ac"] / df["dc"] * 100
-        df.rename({"efficiency_inverter": "value"}, axis=1, inplace=True)
+        df.rename({"efficiency_inverter": "y", "date": "x"}, axis=1, inplace=True)
         df.dropna(inplace=True)
     except ValueError:
         return {}
 
-    return df[["date", "value"]].to_dict("records")
+    return df[["x", "y"]].to_dict("records")
 
 
-@app.get("/location/{loc_id}/system/{sys_id}/efficiency/{col}/start_dt={start_dt}")
+@app.get("/efficiency/{col}/{sys_id}/{start_dt}", tags=["Efficiency"])
 def get_efficiency(
-    loc_id: int,
-    sys_id: int,
     col: Efficiencies,
+    sys_id: int,
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
-) -> List[Dict[str, float]]:
+) -> Dict[str, List[float]]:
     """Get array of system efficiency.
 
     Args:
-    - loc_id (int): Location ID.
-    - sys_id (int): System ID.
     - col (Efficiencies): Array or System.
+    - sys_id (int): System ID.
     - start_dt (str): Start date.
     - end_dt (Optional[str], optional): End date. Defaults to None.
     - agg (Aggregations, optional): Aggregation selection. Defaults to Aggregations.D.
 
     Returns:
-    - List[Dict[str, float]]: Efficiency on a daily basis.
+    - Dict[str, List[float]]: Efficiency on a daily basis.
     """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, agg.value)
 
-    energy_col = config["efficiencies"][col.name]
-
-    energy = crud.get_perfs(sys_id, energy_col, dates)
+    energy = crud.get_perfs(sys_id, col.name, dates)
     yield_reference = crud.get_perfs(sys_id, "yield_reference", dates)
     system_area = float(crud.system_area(sys_id))
 
@@ -340,35 +328,33 @@ def get_efficiency(
         df = functions.groupby(df, freq=agg.name)
 
         df["efficiency"] = (df["energy"] * 100) / (df["reference"] * system_area)
-        df.rename({"efficiency": "value"}, axis=1, inplace=True)
+        df.rename({"efficiency": "y", "date": "x"}, axis=1, inplace=True)
         df.dropna(inplace=True)
     except ValueError:
         return {}
 
-    return df[["date", "value"]].to_dict("records")
+    return df[["x", "y"]].to_dict("records")
 
 
-@app.get("/location/{loc_id}/system/{sys_id}/energy/{col}/start_dt={start_dt}")
+@app.get("/energy/{col}/{sys_id}/{start_dt}", tags=["Energy"])
 def get_energy(
-    loc_id: int,
-    sys_id: int,
     col: Energies,
+    sys_id: int,
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
-) -> List[Dict[str, float]]:
+) -> Dict[str, List[float]]:
     """Get DC or AC energy.
 
     Args:
-    - loc_id (int): Location ID.
-    - sys_id (int): System ID.
     - col (Energies): DC or AC.
+    - sys_id (int): System ID.
     - start_dt (str): Start date.
     - end_dt (Optional[str], optional): End date. Defaults to None.
     - agg (Aggregations, optional): Aggregation selection. Defaults to Aggregations.D.
 
     Returns:
-    - List[Dict[str, float]]: Energy on a daily basis.
+    - Dict[str, List[float]]: Energy on a daily basis.
     """
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
@@ -378,42 +364,35 @@ def get_energy(
 
     try:
         df = functions.groupby(energy, freq=agg.name)
-        df.columns = ["date", "value"]
+        df.columns = ["x", "y"]
     except ValueError:
         return {}
 
     return df.to_dict("records")
 
 
-@app.get("/comparison/{col}/{start_dt}/{end_dt}/")
+@app.get("/comparison/{col}/{start_dt}/{end_dt}/", tags=["Comparison"])
 def get_comparation(
     col: Comparations,
     start_dt: str,
     end_dt: str,
-    techs: List[str] = Query(None),
-) -> List[Dict[str, float]]:
+) -> Dict[str, List[float]]:
     """Get system comparations.
 
     Args:
     - col (Comparations): Performance metric selection.
     - start_dt (str): Start date.
     - end_dt (str): End date.
-    - techs (List[str], optional): Technology selection. Defaults to Query(None).
 
     Returns:
-    - List[Dict[str, float]]: System performance metric and confidence level.
+    - Dict[str, List[float]]: System performance metric and confidence level.
     """
-    if techs is None or not techs:
-        return {}
-
-    techs = [tech.upper() for tech in techs]
 
     dates = functions.format_dates(start_dt, end_dt)
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates)
 
     rslt = crud.get_perfs_cmp(col.name, dates)
-    rslt = rslt.loc[rslt["technology"].isin(techs)]
 
     dct = functions.format_comparison(rslt)
     return dct

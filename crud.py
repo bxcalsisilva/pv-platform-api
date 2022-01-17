@@ -4,7 +4,7 @@ import pandas as pd
 from pandas import DataFrame
 from datetime import date
 import json
-from typing import List
+from typing import Dict, List
 
 # from functions import sort_dates, agg_rslt
 from database import metadata, connection
@@ -141,8 +141,8 @@ def get_temps(system_id: int, dates: List[date]):
         .distinct()
     )
     rslt = connection.execute(stmt)
-    df = pd.DataFrame(rslt.all(), columns=rslt.keys())
-    dct = dict_format(df, columns=["date", "value"])
+    df = pd.DataFrame(rslt.all(), columns=["x", "y"])
+    dct = dict_format(df)
     return dct
 
 
@@ -158,8 +158,8 @@ def get_irrs(loc_id: int, dates: List[date]):
         .distinct()
     )
     rslt = connection.execute(stmt)
-    df = pd.DataFrame(rslt.all(), columns=rslt.keys())
-    dct = dict_format(df, columns=["date", "value"])
+    df = pd.DataFrame(rslt.all(), columns=["x", "y"])
+    dct = dict_format(df)
 
     return dct
 
@@ -176,15 +176,14 @@ def get_invs(system_id: int, col: str, dates: List[date]):
         .distinct()
     )
     rslt = connection.execute(stmt)
-    df = pd.DataFrame(rslt.all(), columns=rslt.keys())
-    dct = dict_format(df, columns=["date", "value"])
+    df = pd.DataFrame(rslt.all(), columns=["x", "y"])
+    dct = dict_format(df)
 
     return dct
 
 
-def dict_format(df: DataFrame, columns=["x", "y"]):
-    df.columns = columns
-    dct = df.to_dict("records")
+def dict_format(df: DataFrame) -> Dict[str, List]:
+    dct = df.to_dict("list")
     return dct
 
 
@@ -201,23 +200,13 @@ def system_area(system_id: int) -> float:
 
 
 if __name__ == "__main__":
-    # rslt = get_temps(1, date(2021, 5, 31), date(2021, 6, 1))
-    sys_id = 5
-    # rslt = get_sys_info(sys_id)
-    # print(rslt)
-
-    # rslt = get_tech_info(sys_id)
-    # print(rslt)
+    loc_id = 1
+    sys_id = 1
 
     start_dt = date(2021, 5, 1)
-    end_dt = date(2021, 7, 31)
+    end_dt = date(2021, 5, 2)
     agg = "day"
-    # rslt = sort_dates(start_dt, end_dt, "weekly")
 
-    # rslt = get_perfs(1, "energy_ac", start_dt, end_dt)
-    # rslt = get_irrs(1, start_dt, end_dt)
-    # df = agg_rslt(rslt, freq="T")
-    # print(df)
+    df = get_irrs(loc_id, [start_dt, end_dt])
 
-    sys_area = system_area(1)
-    print(sys_area)
+    print(df)

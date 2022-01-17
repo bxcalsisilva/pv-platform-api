@@ -26,31 +26,5 @@
         "Temperature coefficient Pmax (%/°C)",
         "NOCT (°C)",
         "Module Efficiency (%)"
-    ],
-    "inv_cols": [
-        "voltage_dc",
-        "current_dc",
-        "power_dc",
-        "power_ac",
-        "power_apparent"
-    ],
-    "perf_cols": [
-        "radiation",
-        "yield_reference",
-        "yield_absolute",
-        "yield_final",
-        "performance_ratio",
-        "efficiency_array",
-        "efficiency_system",
-        "efficiency_inverter",
-        "energy_dc",
-        "energy_ac"
-    ],
-    "agg": {
-        "min": "T",
-        "day": "D",
-        "week": "W",
-        "month": "MS",
-        "year": "YS"
-    }
+    ]
 }

@@ -1,15 +1,8 @@
 from datetime import date, timedelta, datetime
 from dateutil.relativedelta import relativedelta
-import pandas as pd
-import numpy as np
-import json
+from pandas import DataFrame, to_datetime, Grouper
 
-from typing import List, Dict, Optional
-from decimal import Decimal
-
-from pandas.core.frame import DataFrame
-
-import crud
+from typing import List
 
 
 def format_date(date: str) -> date:
@@ -26,7 +19,7 @@ def format_date(date: str) -> date:
                 raise ValueError
 
 
-def format_dates(start_date: str, end_date: str) -> List[date]:
+def format_dates(start_date: str, end_date: str = None) -> List[date]:
     start_date = format_date(start_date)
     if end_date:
         end_date = format_date(end_date)
@@ -62,47 +55,16 @@ def set_dates_range(dates: List[date], mode: str = "date") -> List[date]:
     return dates
 
 
-def groupby(df: pd.DataFrame, freq: str) -> pd.DataFrame:
+def groupby(df: DataFrame, freq: str) -> DataFrame:
     df.dropna(inplace=True)
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = to_datetime(df["date"])
 
-    df = df.groupby(pd.Grouper(key="date", freq=freq)).sum().reset_index()
+    df = df.groupby(Grouper(key="date", freq=freq)).sum().reset_index()
+    if freq == "MS":
+        df["date"] = df["date"].dt.strftime("%Y-%m")
+    if freq == "YS":
+        df["date"] = df["date"].dt.strftime("%Y")
     return df
-
-
-def agg_rslt(rslt: list, key: str = "date", col: str = "value", freq: str = "T"):
-    df = pd.DataFrame(rslt)
-    df[key] = pd.to_datetime(df[key])
-    groupby = df.groupby([pd.Grouper(key=key, freq=freq)])
-
-    mean = groupby[col].mean()
-    std_dev = groupby[col].std()
-    count = groupby[col].count()
-    std_err = std_dev / np.sqrt(count)
-
-    df = pd.DataFrame()
-    df[col] = mean
-    df["std_err"] = std_err
-
-    df.dropna(subset=[col], inplace=True)
-    df.reset_index(inplace=True)
-
-    return df
-
-
-def slct_get(loc_id: int, sys_id: int, start_dt: date, end_dt: date, col: str):
-    config = json.load(open("config.json", "r"))
-
-    if col == "irr":
-        rslt = crud.get_irrs(loc_id, start_dt, end_dt)
-    elif col == "t_mod":
-        rslt = crud.get_temps(sys_id, start_dt, end_dt)
-    elif col in config["inv_cols"]:
-        rslt = crud.get_invs(sys_id, col, start_dt, end_dt)
-    elif col in config["perf_cols"]:
-        rslt = crud.get_perfs(sys_id, col, start_dt, end_dt)
-
-    return rslt
 
 
 def format_comparison(rslt: DataFrame):
@@ -128,33 +90,3 @@ def format_comparison(rslt: DataFrame):
     dct = {"data": dct}
 
     return dct
-
-
-def format_date(date: str) -> date:
-    try:
-        return datetime.strptime(date, "%Y-%m-%d")
-    except ValueError:
-        try:
-            return datetime.strptime(date, "%Y-%m")
-        except ValueError:
-            try:
-                return datetime.strptime(date, "%Y")
-            except:
-                print(f"Date format unknown {date}")
-                raise ValueError
-
-
-def format_dates(start_date: str, end_date: str = None) -> List[date]:
-    start_date = format_date(start_date)
-    if end_date:
-        end_date = format_date(end_date)
-
-    return [start_date, end_date]
-
-
-def aggregate_performance(data: List[Dict[str, Decimal]], mode: str):
-
-    df = pd.DataFrame(data)
-    df["date"] = pd.to_datetime(df["date"])
-
-    pass
