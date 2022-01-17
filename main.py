@@ -101,7 +101,7 @@ def get_system_information(loc_id: int, sys_id: int) -> List[List[Dict[str, floa
     - sys_id (int): System ID
 
     Returns:
-    - List[List[Dict[str, float]]]: System and module lists of information dictionaries.
+    - List[List[Dict[str, float]]]: System and module list of information dictionaries.
     """
     return crud.get_sys_info(sys_id), crud.get_tech_info(sys_id)
 
@@ -202,7 +202,7 @@ def get_yield(
     except ValueError:
         return {}
 
-    return df.to_dict("records")
+    return df.to_dict("list")
 
 
 @app.get("/performance-ratio/{col}/{sys_id}/{start_dt}", tags=["Performance ratio"])
@@ -248,7 +248,7 @@ def get_performance_ratio(
     except ValueError:
         return {}
 
-    return df[["x", "y"]].to_dict("records")
+    return df[["x", "y"]].to_dict("list")
 
 
 @app.get("/efficiency/inverter/{sys_id}/{start_dt}", tags=["Efficiency"])
@@ -289,7 +289,7 @@ def get_inverter_efficiency(
     except ValueError:
         return {}
 
-    return df[["x", "y"]].to_dict("records")
+    return df[["x", "y"]].to_dict("list")
 
 
 @app.get("/efficiency/{col}/{sys_id}/{start_dt}", tags=["Efficiency"])
@@ -333,7 +333,7 @@ def get_efficiency(
     except ValueError:
         return {}
 
-    return df[["x", "y"]].to_dict("records")
+    return df[["x", "y"]].to_dict("list")
 
 
 @app.get("/energy/{col}/{sys_id}/{start_dt}", tags=["Energy"])
@@ -368,7 +368,7 @@ def get_energy(
     except ValueError:
         return {}
 
-    return df.to_dict("records")
+    return df.to_dict("list")
 
 
 @app.get("/comparison/{col}/{start_dt}/{end_dt}/", tags=["Comparison"])
