@@ -51,7 +51,7 @@ PV-Platform API helps retrieve the monitoring and performance metrics of systems
 
 """
 
-app = FastAPI(title="PV-Platform API", description=description, version="0.11.0")
+app = FastAPI(title="PV-Platform API", description=description, version="0.11.2")
 
 app.add_middleware(
     CORSMiddleware,
