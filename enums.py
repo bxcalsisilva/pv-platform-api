@@ -17,8 +17,8 @@ class Aggregations(str, Enum):
 
 class Yields(str, Enum):
     yield_reference = "reference"
+    yield_final = "array"
     yield_absolute = "system"
-    yield_final = "final"
 
 
 class PerformanceRatios(str, Enum):
