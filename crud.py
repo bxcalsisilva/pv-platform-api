@@ -60,7 +60,8 @@ def get_sys_info(sys_id: int):
     df = pd.DataFrame(rslt.all(), columns=config["sys_info_cols"])
     df = df.transpose().reset_index()
 
-    dct = dict_format(df)
+    df.columns = ["x", "y"]
+    dct = df.to_dict("records")
 
     return dct
 
@@ -84,7 +85,8 @@ def get_tech_info(sys_id: int):
     df = pd.DataFrame(rslt.all(), columns=config["tech_info_cols"])
     df = df.transpose().reset_index()
 
-    dct = dict_format(df)
+    df.columns = ["x", "y"]
+    dct = df.to_dict("records")
 
     return dct
 
