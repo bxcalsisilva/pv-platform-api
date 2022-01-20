@@ -6,7 +6,6 @@ from datetime import date
 import json
 from typing import Dict, List
 
-# from functions import sort_dates, agg_rslt
 from database import metadata, connection
 
 config = json.load(open("config.json", "r"))

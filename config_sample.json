@@ -6,24 +6,24 @@
     "db": "pv_systems",
     "sys_info_cols": [
         "Nominal Power (kW)",
-        "Modules in String",
-        "Modules in parallel",
         "Area (m2)",
-        "modules",
+        "Modules in Series",
+        "Modules in Parallel",
+        "Number of Modules",
         "Commisioned",
         "Inclination (°)",
         "Orientation",
         "Azimuth (°)",
         "Latitude",
         "Longitude",
-        "Altitude"
+        "Altitude (m)"
     ],
     "tech_info_cols": [
         "Nominal Power (kW)",
         "Area (m2)",
-        "Temperature coefficient Isc (%/°C)",
-        "Temperature coefficient Voc (%/°C)",
-        "Temperature coefficient Pmax (%/°C)",
+        "Temperature Coefficient Isc (%/°C)",
+        "Temperature Coefficient Voc (%/°C)",
+        "Temperature Coefficient Pmax (%/°C)",
         "NOCT (°C)",
         "Module Efficiency (%)"
     ]
