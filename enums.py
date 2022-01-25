@@ -43,6 +43,7 @@ class Comparations(str, Enum):
     performance_ratio = "performance-ratio"
     efficiency_array = "array-efficiency"
     efficiency_system = "system-efficiency"
+    efficiency_inverter = "inverter-efficiency"
     energy_dc = "energy-dc"
     energy_ac = "energy-ac"
 

@@ -59,34 +59,33 @@ def groupby(df: DataFrame, freq: str) -> DataFrame:
     df.dropna(inplace=True)
     df["date"] = to_datetime(df["date"])
 
+    counts = df.groupby(Grouper(key="date", freq=freq)).count().iloc[:, 0]
+    counts = list(counts)
+
     df = df.groupby(Grouper(key="date", freq=freq)).sum().reset_index()
     if freq == "MS":
         df["date"] = df["date"].dt.strftime("%Y-%m")
+        df["text"] = [f"days: {d}" for d in counts]
     if freq == "YS":
         df["date"] = df["date"].dt.strftime("%Y")
+        df["text"] = [f"days: {d}" for d in counts]
     return df
 
 
 def format_comparison(rslt: DataFrame):
-    df = rslt.pivot(index="label", columns="technology", values=["avg", "se"])
-    df.columns = df.columns.map("_".join)
 
-    names = df.columns.copy()
-    new_names = {"label": "category"}
-    for col in names:
-        split = col.split("_")
-        method, technology = split[0], split[1].lower()
-        if method == "avg":
-            new_names[col] = technology
-        elif method == "se":
-            new_names[col] = technology + "_variation"
+    locations = ["PUCP", "UNI", "UNTRM", "UNSA", "UNAJ", "UNJBG"]
+    techs = ["PERC", "HIT", "CIGS"]
 
-    df.reset_index(inplace=True)
-    df.rename(new_names, axis=1, inplace=True)
+    data = {}
 
-    df.fillna("null", inplace=True)
+    for loc in locations:
+        df_location = rslt.loc[rslt["label"] == loc]
 
-    dct = df.to_dict("records")
-    dct = {"data": dct}
+        techs = df_location["technology"].to_list()
+        avg = df_location["avg"].to_list()
+        se = df_location["se"].to_list()
+        days = ("days: " + df_location["days"].astype(str)).to_list()
+        data[loc] = {"techs": techs, "avg": avg, "se": se, "days": days}
 
-    return dct
+    return data

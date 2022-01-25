@@ -198,7 +198,7 @@ def get_yield(
     yields = crud.get_perfs(sys_id, col.name, dates)
     try:
         df = functions.groupby(yields, freq=agg.name)
-        df.columns = ["x", "y"]
+        df.rename({"date": "x", col.name: "y"}, axis=1, inplace=True)
     except ValueError:
         return {}
 
@@ -248,7 +248,10 @@ def get_performance_ratio(
     except ValueError:
         return {}
 
-    return df[["x", "y"]].to_dict("list")
+    try:
+        return df[["x", "y", "text"]].to_dict("list")
+    except:
+        return df[["x", "y"]].to_dict("list")
 
 
 @app.get("/efficiency/inverter/{sys_id}/{start_dt}", tags=["Efficiency"])
@@ -289,7 +292,10 @@ def get_inverter_efficiency(
     except ValueError:
         return {}
 
-    return df[["x", "y"]].to_dict("list")
+    try:
+        return df[["x", "y", "text"]].to_dict("list")
+    except:
+        return df[["x", "y"]].to_dict("list")
 
 
 @app.get("/efficiency/{col}/{sys_id}/{start_dt}", tags=["Efficiency"])
@@ -333,7 +339,10 @@ def get_efficiency(
     except ValueError:
         return {}
 
-    return df[["x", "y"]].to_dict("list")
+    try:
+        return df[["x", "y", "text"]].to_dict("list")
+    except:
+        return df[["x", "y"]].to_dict("list")
 
 
 @app.get("/energy/{col}/{sys_id}/{start_dt}", tags=["Energy"])
@@ -364,7 +373,7 @@ def get_energy(
 
     try:
         df = functions.groupby(energy, freq=agg.name)
-        df.columns = ["x", "y"]
+        df.rename({"date": "x", col.name: "y"}, axis=1, inplace=True)
     except ValueError:
         return {}
 
@@ -393,6 +402,10 @@ def get_comparation(
     dates = functions.set_dates_range(dates)
 
     rslt = crud.get_perfs_cmp(col.name, dates)
+    rslt.fillna("null", inplace=True)
+
+    print(rslt)
 
     dct = functions.format_comparison(rslt)
+
     return dct

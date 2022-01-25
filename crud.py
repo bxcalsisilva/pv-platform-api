@@ -117,6 +117,7 @@ def get_perfs_cmp(col: str, dates: List[date]):
             (func.stddev(prfms.c[col]) / func.sqrt(func.count(prfms.c[col]))).label(
                 "se"
             ),
+            func.count().label("days"),
         )
         .join(sys, sys.c.system_id == prfms.c.system_id)
         .join(locs, locs.c.location_id == sys.c.location_id)
