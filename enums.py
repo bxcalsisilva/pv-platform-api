@@ -44,8 +44,8 @@ class Comparations(str, Enum):
     efficiency_array = "array-efficiency"
     efficiency_system = "system-efficiency"
     efficiency_inverter = "inverter-efficiency"
-    energy_dc = "energy-dc"
-    energy_ac = "energy-ac"
+    energy_dc = "dc-energy"
+    energy_ac = "ac-energyc"
 
 
 class Technologies(str, Enum):

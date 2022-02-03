@@ -114,9 +114,9 @@ def get_perfs_cmp(col: str, dates: List[date]):
             locs.c.label,
             sys.c.technology,
             func.avg(prfms.c[col]).label("avg"),
-            (func.stddev(prfms.c[col]) / func.sqrt(func.count(prfms.c[col]))).label(
-                "se"
-            ),
+            (
+                func.stddev(prfms.c[col]) / func.sqrt(func.count(prfms.c[col])) * 1.95
+            ).label("se"),
             func.count().label("days"),
         )
         .join(sys, sys.c.system_id == prfms.c.system_id)
