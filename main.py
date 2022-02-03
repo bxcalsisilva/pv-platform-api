@@ -404,8 +404,6 @@ def get_comparation(
     rslt = crud.get_perfs_cmp(col.name, dates)
     rslt.fillna("null", inplace=True)
 
-    print(rslt)
-
     dct = functions.format_comparison(rslt)
 
     return dct
