@@ -1,8 +1,10 @@
-from fastapi import FastAPI
+from sqlalchemy.orm import Session
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, List, Optional
 import pandas
 
+from database import SessionLocal
 import crud
 import functions
 from enums import (
@@ -14,6 +16,15 @@ from enums import (
     Energies,
     PerformanceRatios,
 )
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 
 description = """
 PV-Platform API helps retrieve the monitoring and performance metrics of systems installed in Peru.
@@ -68,18 +79,20 @@ def main():
 
 
 @app.get("/locations", tags=["Description"])
-def get_locations() -> List[Dict[str, str]]:
+def get_locations(db: Session = Depends(get_db)) -> List[Dict[str, str]]:
     """
     Read the available locations in the Database.
 
     Returns:
     - List[Dict[str, str]]: Dictionaries with location_id and label keys.
     """
-    return crud.get_locs()
+    return crud.get_locs(db)
 
 
 @app.get("/location/{loc_id}/systems", tags=["Description"])
-def get_systems_by_location(loc_id: int) -> List[Dict[str, int]]:
+def get_systems_by_location(
+    loc_id: int, db: Session = Depends(get_db)
+) -> List[Dict[str, int]]:
     """Read systems available in the requested location.
 
     Args:
@@ -88,11 +101,13 @@ def get_systems_by_location(loc_id: int) -> List[Dict[str, int]]:
     Returns:
     - List[Dict[str, int]]: dictionaries with location_id, system_id and technology of each system.
     """
-    return crud.get_sys(loc_id)
+    return crud.get_sys(db, loc_id)
 
 
 @app.get("/location/{loc_id}/system/{sys_id}", tags=["Description"])
-def get_system_information(loc_id: int, sys_id: int) -> List[List[Dict[str, float]]]:
+def get_system_information(
+    loc_id: int, sys_id: int, db: Session = Depends(get_db)
+) -> List[List[Dict[str, float]]]:
     """
     Get system information on module and system level.
 
@@ -103,12 +118,12 @@ def get_system_information(loc_id: int, sys_id: int) -> List[List[Dict[str, floa
     Returns:
     - List[List[Dict[str, float]]]: System and module list of information dictionaries.
     """
-    return crud.get_sys_info(sys_id), crud.get_tech_info(sys_id)
+    return crud.get_sys_info(db, sys_id), crud.get_tech_info(db, sys_id)
 
 
 @app.get("/ambient/irr/{loc_id}/{start_dt}", tags=["Ambient"])
 def get_irradiance(
-    loc_id: int, start_dt: str, end_dt: str = None
+    loc_id: int, start_dt: str, end_dt: str = None, db: Session = Depends(get_db)
 ) -> Dict[str, List[float]]:
     """Get Irradiance from database.
 
@@ -124,12 +139,12 @@ def get_irradiance(
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates)
 
-    return crud.get_irrs(loc_id, dates)
+    return crud.get_irrs(db, loc_id, dates)
 
 
 @app.get("/ambient/t_mod/{sys_id}/{start_dt}", tags=["Ambient"])
 def get_module_temperature(
-    sys_id: int, start_dt: str, end_dt: str = None
+    sys_id: int, start_dt: str, end_dt: str = None, db: Session = Depends(get_db)
 ) -> Dict[str, List[float]]:
     """Get module temperature of a system.
 
@@ -145,12 +160,16 @@ def get_module_temperature(
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates)
 
-    return crud.get_temps(sys_id, dates)
+    return crud.get_temps(db, sys_id, dates)
 
 
 @app.get("/inverter/{col}/{sys_id}/{start_dt}", tags=["Inverter"])
 def get_system_output(
-    sys_id: int, col: Inverters, start_dt: str, end_dt: str = None
+    sys_id: int,
+    col: Inverters,
+    start_dt: str,
+    end_dt: str = None,
+    db: Session = Depends(get_db),
 ) -> Dict[str, List[float]]:
     """Get array or system electrical output.
 
@@ -168,7 +187,7 @@ def get_system_output(
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates)
 
-    return crud.get_invs(sys_id, col.name, dates)
+    return crud.get_invs(db, sys_id, col.name, dates)
 
 
 @app.get("/yield/{col}/{sys_id}/{start_dt}", tags=["Yield"])
@@ -178,6 +197,7 @@ def get_yield(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Optional[Aggregations] = Aggregations.D,
+    db: Session = Depends(get_db),
 ) -> Dict[str, List[float]]:
     """Get system yield.
 
@@ -195,7 +215,7 @@ def get_yield(
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, mode=agg.value)
 
-    yields = crud.get_perfs(sys_id, col.name, dates)
+    yields = crud.get_perfs(db, sys_id, col.name, dates)
     try:
         df = functions.groupby(yields, freq=agg.name)
         df.rename({"date": "x", col.name: "y"}, axis=1, inplace=True)
@@ -212,6 +232,7 @@ def get_performance_ratio(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
+    db: Session = Depends(get_db),
 ) -> Dict[str, List[float]]:
     """Get system performance ratio.
 
@@ -231,8 +252,8 @@ def get_performance_ratio(
 
     yield_name = col.name
 
-    yield_col = crud.get_perfs(sys_id, yield_name, dates)
-    yield_reference = crud.get_perfs(sys_id, "yield_reference", dates)
+    yield_col = crud.get_perfs(db, sys_id, yield_name, dates)
+    yield_reference = crud.get_perfs(db, sys_id, "yield_reference", dates)
 
     yields = pandas.merge(yield_col, yield_reference, on="date")
     yields.columns = ["date", yield_name, "reference"]
@@ -260,6 +281,7 @@ def get_inverter_efficiency(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
+    db: Session = Depends(get_db),
 ) -> Dict[str, List[float]]:
     """Get inverter efficiency.
 
@@ -276,8 +298,8 @@ def get_inverter_efficiency(
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, agg.value)
 
-    energy_dc = crud.get_perfs(sys_id, "energy_dc", dates)
-    energy_ac = crud.get_perfs(sys_id, "energy_ac", dates)
+    energy_dc = crud.get_perfs(db, sys_id, "energy_dc", dates)
+    energy_ac = crud.get_perfs(db, sys_id, "energy_ac", dates)
 
     energy = pandas.merge(energy_dc, energy_ac, on="date")
     energy.columns = ["date", "dc", "ac"]
@@ -305,6 +327,7 @@ def get_efficiency(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
+    db: Session = Depends(get_db),
 ) -> Dict[str, List[float]]:
     """Get array of system efficiency.
 
@@ -322,9 +345,9 @@ def get_efficiency(
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, agg.value)
 
-    energy = crud.get_perfs(sys_id, col.name, dates)
-    yield_reference = crud.get_perfs(sys_id, "yield_reference", dates)
-    system_area = float(crud.system_area(sys_id))
+    energy = crud.get_perfs(db, sys_id, col.name, dates)
+    yield_reference = crud.get_perfs(db, sys_id, "yield_reference", dates)
+    system_area = float(crud.system_area(db, sys_id))
 
     df = pandas.merge(energy, yield_reference, on="date")
     df.columns = ["date", "energy", "reference"]
@@ -352,6 +375,7 @@ def get_energy(
     start_dt: str,
     end_dt: Optional[str] = None,
     agg: Aggregations = Aggregations.D,
+    db: Session = Depends(get_db),
 ) -> Dict[str, List[float]]:
     """Get DC or AC energy.
 
@@ -369,7 +393,7 @@ def get_energy(
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates, agg.value)
 
-    energy = crud.get_perfs(sys_id, col.name, dates)
+    energy = crud.get_perfs(db, sys_id, col.name, dates)
 
     try:
         df = functions.groupby(energy, freq=agg.name)
@@ -382,9 +406,7 @@ def get_energy(
 
 @app.get("/comparison/{col}/{start_dt}/{end_dt}/", tags=["Comparison"])
 def get_comparation(
-    col: Comparations,
-    start_dt: str,
-    end_dt: str,
+    col: Comparations, start_dt: str, end_dt: str, db: Session = Depends(get_db)
 ) -> Dict[str, List[float]]:
     """Get system comparations.
 
@@ -401,7 +423,7 @@ def get_comparation(
     dates = functions.sort_dates(dates)
     dates = functions.set_dates_range(dates)
 
-    rslt = crud.get_perfs_cmp(col.name, dates)
+    rslt = crud.get_perfs_cmp(db, col.name, dates)
     rslt.fillna("null", inplace=True)
 
     dct = functions.format_comparison(rslt)

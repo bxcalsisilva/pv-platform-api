@@ -1,40 +1,40 @@
-from sqlalchemy import select
-from sqlalchemy import func
+from sqlalchemy import select, func
+from sqlalchemy.orm import Session
 import pandas as pd
 from pandas import DataFrame
 from datetime import date
 import json
 from typing import Dict, List
 
-from database import metadata, connection
+from database import metadata
 
 config = json.load(open("config.json", "r"))
 
 
-def get_locs():
+def get_locs(db: Session):
     locs = metadata.tables["locations"]
     stmt = select(locs.c.location_id, func.concat(locs.c.city, " - ", locs.c.label))
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=["location_id", "label"])
     dct = df.to_dict("records")
     return dct
 
 
-def get_sys(loc_id: int):
+def get_sys(db: Session, loc_id: int):
     sys = metadata.tables["systems"]
     stmt = select(
         sys.c.location_id,
         sys.c.system_id,
         sys.c.technology,
     ).where(loc_id == sys.c.location_id)
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=rslt.keys())
     dct = df.to_dict("records")
 
     return dct
 
 
-def get_sys_info(sys_id: int):
+def get_sys_info(db: Session, sys_id: int):
     sys = metadata.tables["systems"]
     locs = metadata.tables["locations"]
     stmt = (
@@ -55,7 +55,7 @@ def get_sys_info(sys_id: int):
         .join(locs)
         .where(sys_id == sys.c.system_id)
     )
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=config["sys_info_cols"])
     df = df.transpose().reset_index()
 
@@ -65,7 +65,7 @@ def get_sys_info(sys_id: int):
     return dct
 
 
-def get_tech_info(sys_id: int):
+def get_tech_info(db: Session, sys_id: int):
     sys = metadata.tables["systems"]
     stmt = (
         select(
@@ -80,7 +80,7 @@ def get_tech_info(sys_id: int):
         .where(sys_id == sys.c.system_id)
         .distinct()
     )
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=config["tech_info_cols"])
     df = df.transpose().reset_index()
 
@@ -90,7 +90,7 @@ def get_tech_info(sys_id: int):
     return dct
 
 
-def get_perfs(system_id: int, col: str, dates: List[date]) -> pd.DataFrame:
+def get_perfs(db: Session, system_id: int, col: str, dates: List[date]) -> pd.DataFrame:
     performances_table = metadata.tables["performances"]
     stmt = (
         select(performances_table.c.date, performances_table.c[col])
@@ -99,13 +99,13 @@ def get_perfs(system_id: int, col: str, dates: List[date]) -> pd.DataFrame:
         .where(performances_table.c.date < dates[1])
         .distinct()
     )
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=rslt.keys())
 
     return df
 
 
-def get_perfs_cmp(col: str, dates: List[date]):
+def get_perfs_cmp(db: Session, col: str, dates: List[date]):
     prfms = metadata.tables["performances"]
     locs = metadata.tables["locations"]
     sys = metadata.tables["systems"]
@@ -125,13 +125,13 @@ def get_perfs_cmp(col: str, dates: List[date]):
         .where(prfms.c.date < dates[1])
         .group_by(sys.c.system_id)
     )
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=rslt.keys())
 
     return df
 
 
-def get_temps(system_id: int, dates: List[date]):
+def get_temps(db: Session, system_id: int, dates: List[date]):
     obs = metadata.tables["observations"]
     tmps = metadata.tables["t_mods"]
     stmt = (
@@ -142,13 +142,13 @@ def get_temps(system_id: int, dates: List[date]):
         .where(obs.c.datetime < dates[1])
         .distinct()
     )
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=["x", "y"])
     dct = dict_format(df)
     return dct
 
 
-def get_irrs(loc_id: int, dates: List[date]):
+def get_irrs(db: Session, loc_id: int, dates: List[date]):
     obs = metadata.tables["observations"]
     irr = metadata.tables["irradiances"]
     stmt = (
@@ -159,14 +159,14 @@ def get_irrs(loc_id: int, dates: List[date]):
         .where(obs.c.datetime < dates[1])
         .distinct()
     )
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=["x", "y"])
     dct = dict_format(df)
 
     return dct
 
 
-def get_invs(system_id: int, col: str, dates: List[date]):
+def get_invs(db: Session, system_id: int, col: str, dates: List[date]):
     obs = metadata.tables["observations"]
     inv = metadata.tables["inverters"]
     stmt = (
@@ -177,7 +177,7 @@ def get_invs(system_id: int, col: str, dates: List[date]):
         .where(obs.c.datetime < dates[1])
         .distinct()
     )
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
     df = pd.DataFrame(rslt.all(), columns=["x", "y"])
     dct = dict_format(df)
 
@@ -189,13 +189,13 @@ def dict_format(df: DataFrame) -> Dict[str, List]:
     return dct
 
 
-def system_area(system_id: int) -> float:
+def system_area(db: Session, system_id: int) -> float:
     systems_table = metadata.tables["systems"]
     stmt = select(
         systems_table.c.area * systems_table.c.row * systems_table.c.parallel
     ).where(systems_table.c.system_id == system_id)
 
-    rslt = connection.execute(stmt)
+    rslt = db.execute(stmt)
 
     [sys_area] = rslt.one()
     return sys_area
