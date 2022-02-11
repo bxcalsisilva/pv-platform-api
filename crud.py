@@ -123,6 +123,7 @@ def get_perfs_cmp(db: Session, col: str, dates: List[date]):
         .join(locs, locs.c.location_id == sys.c.location_id)
         .where(dates[0] <= prfms.c.date)
         .where(prfms.c.date < dates[1])
+        .where(prfms.c[col].isnot(None))
         .group_by(sys.c.system_id)
     )
     rslt = db.execute(stmt)

@@ -22,8 +22,8 @@ class Yields(str, Enum):
 
 
 class PerformanceRatios(str, Enum):
-    yield_absolute = "ac"
     yield_final = "dc"
+    yield_absolute = "ac"
 
 
 class Efficiencies(str, Enum):
@@ -38,14 +38,14 @@ class Energies(str, Enum):
 
 class Comparations(str, Enum):
     yield_reference = "reference-yield"
-    yield_absolute = "array-yield"
-    yield_final = "system-yield"
+    yield_final = "array-yield"
+    yield_absolute = "system-yield"
     performance_ratio = "performance-ratio"
     efficiency_array = "array-efficiency"
     efficiency_system = "system-efficiency"
     efficiency_inverter = "inverter-efficiency"
     energy_dc = "dc-energy"
-    energy_ac = "ac-energyc"
+    energy_ac = "ac-energy"
 
 
 class Technologies(str, Enum):
