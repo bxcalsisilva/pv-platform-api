@@ -219,6 +219,7 @@ def get_yield(
     try:
         df = functions.groupby(yields, freq=agg.name)
         df.rename({"date": "x", col.name: "y"}, axis=1, inplace=True)
+        df = df[df["y"] > 0]
     except ValueError:
         return {}
 
@@ -265,6 +266,7 @@ def get_performance_ratio(
         df = functions.groupby(yields, freq=agg.name)
         df["performance_ratio"] = df[yield_name] / df["reference"]
         df.rename({"performance_ratio": "y", "date": "x"}, axis=1, inplace=True)
+        df = df[df["y"] > 0]
         df.dropna(inplace=True)
     except ValueError:
         return {}
@@ -310,6 +312,7 @@ def get_inverter_efficiency(
 
         df["efficiency_inverter"] = df["ac"] / df["dc"] * 100
         df.rename({"efficiency_inverter": "y", "date": "x"}, axis=1, inplace=True)
+        df = df[df["y"] > 0]
         df.dropna(inplace=True)
     except ValueError:
         return {}
@@ -358,6 +361,7 @@ def get_efficiency(
 
         df["efficiency"] = (df["energy"] * 100) / (df["reference"] * system_area)
         df.rename({"efficiency": "y", "date": "x"}, axis=1, inplace=True)
+        df = df[df["y"] > 0]
         df.dropna(inplace=True)
     except ValueError:
         return {}
@@ -398,6 +402,7 @@ def get_energy(
     try:
         df = functions.groupby(energy, freq=agg.name)
         df.rename({"date": "x", col.name: "y"}, axis=1, inplace=True)
+        df = df[df["y"] > 0]
     except ValueError:
         return {}
 
