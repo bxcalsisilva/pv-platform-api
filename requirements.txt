@@ -35,7 +35,7 @@ SQLAlchemy==1.4.27
 starlette==0.16.0
 tomli==1.2.2
 typing-extensions==4.0.0
-ujson==5.1.0
+ujson==5.2.0
 urllib3==1.26.7
 uvicorn==0.15.0
 uvloop==0.16.0
