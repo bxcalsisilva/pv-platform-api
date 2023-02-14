@@ -32,7 +32,7 @@ requests==2.26.0
 six==1.16.0
 sniffio==1.2.0
 SQLAlchemy==1.4.27
-starlette==0.16.0
+starlette==0.25.0
 tomli==1.2.2
 typing-extensions==4.0.0
 ujson==5.1.0
